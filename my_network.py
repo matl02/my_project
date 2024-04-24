@@ -58,7 +58,7 @@ if __name__ == "__main__":
     net.start()
 
     # Here we automate the process of creating the 2 slices by calling as a subprocess the first_scenario.sh
-    subprocess.call("./first_scenario.sh")
+    subprocess.call("./common_scenario.sh")
 
     CLI(net)
     net.stop()
