@@ -125,27 +125,22 @@ class TrafficSlicing(app_manager.RyuApp):
 
                     
     # Function that automates the alternation between Emergency and Non-Emergency Scenario                
-    # Function that automates the alternation between Emergency and Non-Emergency Scenario
     def timer(self):
-        while True:
-            choice = input("Avvia?: ")
-            print(choice)
-            
-            if choice == '1':  # Utilizzo di '1' come stringa perché input() restituisce una stringa
-                print('                ***Emergency***                ')
-                self.emergency = 1
-                subprocess.call("./sos_scenario.sh")  # Creazione del terzo scenario
-                self.print_flag = 0
-            elif choice == '0':  # Utilizzo di '0' come stringa perché input() restituisce una stringa
-                print(' ')
-                print('Update: 60 seconds have passed.')
-                print('Ending the Emergency Scenario...')
-                print('Recreate the initial Network Slicing...')
-                print(' ')    
-                subprocess.call("./common_scenario.sh")  # Fine dello scenario di emergenza - Ritorno a 2 scenari
-                self.emergency = 0
-            time.sleep(30)
-
-
-                    
-                
+    while True:
+        choice = input("Avvia?: ")
+        print(choice)
+        
+        if choice == '1':  # Utilizzo di '1' come stringa perché input() restituisce una stringa
+            print('                ***Emergency***                ')
+            self.emergency = 1
+            subprocess.call("./sos_scenario.sh")  # Creazione del terzo scenario
+            self.print_flag = 0
+        elif choice == '0':  # Utilizzo di '0' come stringa perché input() restituisce una stringa
+            print(' ')
+            print('Update: 60 seconds have passed.')
+            print('Ending the Emergency Scenario...')
+            print('Recreate the initial Network Slicing...')
+            print(' ')    
+            subprocess.call("./common_scenario.sh")  # Fine dello scenario di emergenza - Ritorno a 2 scenari
+            self.emergency = 0
+        time.sleep(30)
