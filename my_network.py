@@ -46,13 +46,12 @@ if __name__ == "__main__":
     net = Mininet(
         topo=topo,
         switch=OVSKernelSwitch,
+        controller = RemoteController('c1', ip='127.0.0.1'),
         build=False,
         autoSetMacs=True,
         autoStaticArp=True,
         link=TCLink,
     )
-    controller = RemoteController("c1", ip="127.0.0.1", port=6633)
-    net.addController(controller)
 
     net.build()
     net.start()
