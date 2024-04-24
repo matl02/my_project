@@ -45,13 +45,14 @@ if __name__ == "__main__":
     topo = NetworkSlicingTopo()
     net = Mininet(
         topo=topo,
-        controller=RemoteController('c0', ip='127.0.0.1', port=6633),  # Specify the controller IP and port
         switch=OVSKernelSwitch,
         build=False,
         autoSetMacs=True,
         autoStaticArp=True,
         link=TCLink,
     )
+    controller = RemoteController("c1", ip="127.0.0.1", port=6633)
+    net.addController(controller)
 
     net.build()
     net.start()
