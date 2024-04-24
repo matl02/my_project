@@ -46,7 +46,7 @@ if __name__ == "__main__":
     net = Mininet(
         topo=topo,
         switch=OVSKernelSwitch,
-        controller = RemoteController('c1', ip='127.0.0.1'),
+        controller=RemoteController( 'c0', ip='127.0.0.1'),
         build=False,
         autoSetMacs=True,
         autoStaticArp=True,
