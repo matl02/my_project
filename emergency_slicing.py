@@ -144,6 +144,7 @@ class TrafficSlicing(app_manager.RyuApp):
                 print(' ')    
                 subprocess.call("./common_scenario.sh")  # Fine dello scenario di emergenza - Ritorno a 2 scenari
                 self.emergency = 0
+            time.sleep(30)
 
 
                     
