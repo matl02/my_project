@@ -5,30 +5,22 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet, ether_types
 import subprocess
-from ryu.app.wsgi import ControllerBase, WSGIApplication, route  # Import for REST API
-
-class TrafficSlicingRest(ControllerBase):  # REST API controller class
-    def __init__(self, req, link, data, **config):
-        super(TrafficSlicingRest, self).__init__(req, link, data, **config)
-        self.ts_app = data['ts_app']  # Reference to TrafficSlicing application
-
-    @route('ts', '/trigger_emergency', methods=['POST'])
-    def trigger_emergency(self, req, **kwargs):
-        self.ts_app.trigger_emergency()  # Call method to trigger emergency scenario
-        return "Emergency slicing triggered\n"
+import sys
 
 class TrafficSlicing(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
         super(TrafficSlicing, self).__init__(*args, **kwargs)
-        self.rest = TrafficSlicingRest  # Initialize REST API controller
+        self.emergency_mode = False  # Initial state: Common scenario
 
-    def trigger_emergency(self):
-        self.logger.info("Emergency scenario triggered by REST API command.")
-        self.emergency = 1  # Set emergency flag to activate emergency scenario
-        subprocess.call("./sos_scenario.sh")  # Execute script for emergency scenario
-        # Additional actions to handle emergency scenario as needed
+    def set_emergency_mode(self, enable):
+        if enable:
+            self.logger.info("Emergency scenario activated.")
+            subprocess.call("./sos_scenario.sh")  # Execute script for emergency scenario
+        else:
+            self.logger.info("Returning to common scenario.")
+            subprocess.call("./common_scenario.sh")  # Execute script for common scenario
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -65,47 +57,34 @@ class TrafficSlicing(app_manager.RyuApp):
         )
         datapath.send_msg(out)
 
-    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
-    def _packet_in_handler(self, ev):
-        msg = ev.msg
-        datapath = msg.datapath
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-        in_port = msg.match['in_port']
+    def switch_mode(self):
+        if self.emergency_mode:
+            self.emergency_mode = False
+        else:
+            self.emergency_mode = True
 
-        pkt = packet.Packet(msg.data)
-        eth = pkt.get_protocol(ethernet.ethernet)
+        self.set_emergency_mode(self.emergency_mode)  # Apply mode change
 
-        if eth.ethertype == ether_types.ETH_TYPE_LLDP:
-            return  # ignore LLDP packets
-
-        dst = eth.dst
-        src = eth.src
-
-        dpid = datapath.id
-
-        if dpid in self.mac_to_port:
-            if self.emergency == 1:  # Emergency scenario logic
-                if dst in self.mac_to_port[dpid]:
-                    out_port = self.mac_to_port[dpid][dst]
-                    actions = [parser.OFPActionOutput(out_port)]
-                    match = parser.OFPMatch(eth_dst=dst)
-                    self.add_flow(datapath, 1, match, actions)
-                    self._send_packet(msg, datapath, out_port, actions)
-            else:  # Normal scenario logic
-                if dst in self.mac_to_port[dpid]:
-                    out_port = self.mac_to_port[dpid][dst]
-                    actions = [parser.OFPActionOutput(out_port)]
-                    match = parser.OFPMatch(eth_dst=dst)
-                    self.add_flow(datapath, 1, match, actions)
-                    self._send_packet(msg, datapath, out_port, actions)
-
-        # Handle additional packet processing logic as needed
-
-    def timer(self):
+    def _handle_keyboard_input(self):
         while True:
-            time.sleep(60)  # Interval for toggling between normal and emergency scenarios
-            self.emergency = 1
-            subprocess.call("./sos_scenario.sh")  # Execute script for emergency scenario
-            time.sleep(60)  # Interval for emergency scenario duration
-            self.emergency = 0
+            input_key = input("Press '1' to activate Emergency Mode, '2' to switch back to Common Mode: ")
+
+            if input_key == '1':
+                if not self.emergency_mode:
+                    self.switch_mode()
+            elif input_key == '2':
+                if self.emergency_mode:
+                    self.switch_mode()
+            else:
+                print("Invalid input. Press '1' for Emergency Mode or '2' for Common Mode.")
+
+    def start_keyboard_input_thread(self):
+        import threading
+        input_thread = threading.Thread(target=self._handle_keyboard_input)
+        input_thread.daemon = True
+        input_thread.start()
+
+    def start(self):
+        super(TrafficSlicing, self).start()
+        self.start_keyboard_input_thread()  # Start keyboard input listener
+
